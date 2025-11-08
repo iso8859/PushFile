@@ -1,0 +1,24 @@
+{
+    "dotnet.defaultSolution": "PushFile.sln",
+    "files.exclude": {
+        "**/bin": true,
+        "**/obj": true
+    },
+    "omnisharp.enableEditorConfigSupport": true,
+    "omnisharp.enableRoslynAnalyzers": true,
+    "csharp.semanticHighlighting.enabled": true,
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll": "explicit",
+        "source.organizeImports": "explicit"
+    },
+    "[csharp]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp"
+    },
+    "[razor]": {
+        "editor.defaultFormatter": "ms-dotnettools.csharp"
+    },
+    "files.associations": {
+        "*.razor": "razor"
+    }
+}

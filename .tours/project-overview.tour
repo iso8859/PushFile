@@ -1,0 +1,31 @@
+{
+  "$schema": "https://aka.ms/codevtour-schema",
+  "title": "PushFile Project Tour",
+  "steps": [
+    {
+      "file": "appsettings.json",
+      "description": "## Configuration File\n\nThis is where you configure:\n- **FileUpload**: Destination directory, max file size, allowed extensions\n- **Email**: SMTP server details for notifications\n- **PageSettings**: Customize page title and welcome message",
+      "line": 1
+    },
+    {
+      "file": "Program.cs",
+      "description": "## Application Entry Point\n\nThis file:\n- Configures Blazor Server\n- Registers services (Email and FileUpload)\n- Binds configuration settings to models",
+      "line": 1
+    },
+    {
+      "file": "Pages/Index.razor",
+      "description": "## Main Upload Page\n\nThis Blazor component:\n- Provides the file upload UI\n- Validates files against configured rules\n- Calls FileUploadService to save files\n- Triggers email notifications via EmailService",
+      "line": 1
+    },
+    {
+      "file": "Services/FileUploadService.cs",
+      "description": "## File Upload Service\n\nHandles:\n- Creating destination directory if needed\n- Generating unique filenames with timestamps\n- Saving uploaded files to disk\n- Logging operations",
+      "line": 1
+    },
+    {
+      "file": "Services/EmailService.cs",
+      "description": "## Email Service\n\nResponsible for:\n- Sending SMTP email notifications\n- Creating HTML and text email bodies\n- Formatting file information\n- Error handling and logging",
+      "line": 1
+    }
+  ]
+}
