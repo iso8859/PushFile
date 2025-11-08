@@ -24,11 +24,12 @@ public class EmailService : IEmailService
 
     public async Task SendFileUploadNotificationAsync(string fileName, long fileSize, string filePath)
     {
+        // This method remains but will not include the direct link — use SendFileDownloadLinkAsync to send links.
         try
         {
             var message = new MimeMessage();
-            message.From.Add(new MailboxAddress(_settings.FromName, Environment.ExpandEnvironmentVariables(_settings.FromEmail)));
-            message.To.Add(new MailboxAddress("", Environment.ExpandEnvironmentVariables(_settings.NotificationEmail)));
+            message.From.Add(new MailboxAddress(_settings.FromName, _settings.FromEmail));
+            message.To.Add(new MailboxAddress("", _settings.NotificationEmail));
             message.Subject = $"New File Upload: {fileName}";
 
             var bodyBuilder = new BodyBuilder
@@ -43,13 +44,29 @@ public class EmailService : IEmailService
 
             // Connect to SMTP server
             await client.ConnectAsync(
-                Environment.ExpandEnvironmentVariables(_settings.SmtpServer),
+                _settings.SmtpServer,
                 _settings.SmtpPort,
                 _settings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None
             );
 
             // Authenticate
-            await client.AuthenticateAsync(Environment.ExpandEnvironmentVariables(_settings.SmtpUsername), Environment.ExpandEnvironmentVariables(_settings.SmtpPassword));
+            if (!string.IsNullOrEmpty(_settings.SmtpUsername))
+            {
+                if (_settings.SmtpPassword.StartsWith("%") && _settings.SmtpPassword.EndsWith("%"))
+                {
+                    var envVarName = _settings.SmtpPassword.Trim('%');
+                    var envVarValue = Environment.GetEnvironmentVariable(envVarName);
+                    if (string.IsNullOrEmpty(envVarValue))
+                    {
+                        throw new InvalidOperationException($"Environment variable '{envVarName}' is not set.");
+                    }
+                    await client.AuthenticateAsync(_settings.SmtpUsername, envVarValue);
+                }
+                else
+                {
+                    await client.AuthenticateAsync(_settings.SmtpUsername, _settings.SmtpPassword);
+                }
+            }
 
             // Send the email
             await client.SendAsync(message);
@@ -60,6 +77,47 @@ public class EmailService : IEmailService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending email notification for file: {FileName}", fileName);
+            throw;
+        }
+    }
+
+    public async Task SendFileDownloadLinkAsync(string fileName, string downloadUrl)
+    {
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_settings.FromName, Environment.ExpandEnvironmentVariables(_settings.FromEmail)));
+            message.To.Add(new MailboxAddress("", Environment.ExpandEnvironmentVariables(_settings.NotificationEmail)));
+            message.Subject = $"Download link for: {fileName}";
+
+            var bodyBuilder = new BodyBuilder
+            {
+                HtmlBody = $"<p>A file has been uploaded. <a href=\"{downloadUrl}\">Download it here</a>.</p>",
+                TextBody = $"A file has been uploaded. Download it here: {downloadUrl}"
+            };
+
+            message.Body = bodyBuilder.ToMessageBody();
+
+            using var client = new SmtpClient();
+
+            // Connect to SMTP server
+            await client.ConnectAsync(
+                Environment.ExpandEnvironmentVariables(_settings.SmtpServer),
+                _settings.SmtpPort,
+                _settings.EnableSsl ? SecureSocketOptions.StartTls : SecureSocketOptions.None
+            );
+
+            await client.AuthenticateAsync(Environment.ExpandEnvironmentVariables(_settings.SmtpUsername), Environment.ExpandEnvironmentVariables(_settings.SmtpPassword));
+
+            // Send the email
+            await client.SendAsync(message);
+            await client.DisconnectAsync(true);
+
+            _logger.LogInformation("Download link email sent for file: {FileName}", fileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending download link email for file: {FileName}", fileName);
             throw;
         }
     }

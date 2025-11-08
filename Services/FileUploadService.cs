@@ -11,13 +11,16 @@ public class FileUploadService : IFileUploadService
 {
     private readonly FileUploadSettings _settings;
     private readonly ILogger<FileUploadService> _logger;
+    private readonly IFileIndexService _indexService;
 
     public FileUploadService(
         IOptions<FileUploadSettings> settings,
-        ILogger<FileUploadService> logger)
+        ILogger<FileUploadService> logger,
+        IFileIndexService indexService)
     {
         _settings = settings.Value;
         _logger = logger;
+        _indexService = indexService;
     }
 
     public async Task<string> SaveFileAsync(IBrowserFile file)
@@ -42,6 +45,10 @@ public class FileUploadService : IFileUploadService
                 .CopyToAsync(fileStream);
 
             _logger.LogInformation("File saved successfully: {FilePath}", filePath);
+
+            // register in index service
+            _indexService.Register(filePath);
+
             return filePath;
         }
         catch (Exception ex)

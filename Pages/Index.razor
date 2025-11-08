@@ -46,9 +46,9 @@
                             </small>
                         </div>
 
-                        <button class="btn btn-primary btn-lg w-100" 
+                        <button type="button" class="btn btn-primary btn-lg w-100" 
                                 @onclick="UploadFile" 
-                                disabled="@(selectedFile == null || isUploading)">
+                                disabled="@((selectedFile == null || isUploading) ? true : (bool?)null)">
                             <i class="bi bi-cloud-upload"></i> Upload File
                         </button>
                     }
@@ -81,6 +81,8 @@
     [Inject] private IEmailService? EmailService { get; set; }
     [Inject] private IOptions<FileUploadSettings>? UploadSettingsOptions { get; set; }
     [Inject] private IOptions<PageSettings>? PageSettingsOptions { get; set; }
+    [Inject] private IFileIndexService? FileIndexService { get; set; }
+    [Inject] private NavigationManager? Navigation { get; set; }
 
     private IBrowserFile? selectedFile;
     private string? errorMessage;
@@ -104,7 +106,7 @@
 
     private async Task UploadFile()
     {
-        if (selectedFile == null || FileUploadService == null || EmailService == null || uploadSettings == null)
+        if (selectedFile == null || FileUploadService == null || EmailService == null || uploadSettings == null || FileIndexService == null || Navigation == null)
         {
             errorMessage = "File upload service is not available.";
             return;
@@ -117,7 +119,7 @@
         try
         {
             // Validate file size
-            var maxSizeInBytes = uploadSettings.MaxFileSizeMB * 1024 * 1024;
+            var maxSizeInBytes = uploadSettings.MaxFileSizeMB *1024 *1024;
             if (selectedFile.Size > maxSizeInBytes)
             {
                 errorMessage = $"File size exceeds the maximum allowed size of {uploadSettings.MaxFileSizeMB} MB.";
@@ -127,12 +129,13 @@
             // Upload the file
             var filePath = await FileUploadService.SaveFileAsync(selectedFile);
 
-            // Send email notification
-            await EmailService.SendFileUploadNotificationAsync(
-                selectedFile.Name,
-                selectedFile.Size,
-                filePath
-            );
+            // Register file and build download URL using current domain/base URI
+            var token = FileIndexService.Register(filePath);
+            var baseUri = Navigation.BaseUri?.TrimEnd('/') ?? string.Empty;
+            var downloadUrl = $"{baseUri}/download/{token}";
+
+            // Send email notification containing direct download link
+            await EmailService.SendFileDownloadLinkAsync(selectedFile.Name, downloadUrl);
 
             successMessage = $"File '{selectedFile.Name}' uploaded successfully! A notification email has been sent.";
             selectedFile = null;
@@ -151,11 +154,11 @@
     {
         string[] sizes = { "B", "KB", "MB", "GB" };
         double len = bytes;
-        int order = 0;
-        while (len >= 1024 && order < sizes.Length - 1)
+        int order =0;
+        while (len >=1024 && order < sizes.Length -1)
         {
             order++;
-            len = len / 1024;
+            len = len /1024;
         }
         return $"{len:0.##} {sizes[order]}";
     }
