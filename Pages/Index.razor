@@ -41,13 +41,9 @@
                         <div class="mb-3">
                             <label for="fileInput" class="form-label fw-bold">Select a file to upload:</label>
                             <InputFile OnChange="HandleFileSelected" class="form-control" id="fileInput" />
-                            @if (uploadSettings != null && uploadSettings.AllowedExtensions.Any())
-                            {
-                                <small class="form-text text-muted">
-                                    Allowed extensions: @string.Join(", ", uploadSettings.AllowedExtensions)
-                                    (Max size: @uploadSettings.MaxFileSizeMB MB)
-                                </small>
-                            }
+                            <small class="form-text text-muted">
+                                Max size: @uploadSettings?.MaxFileSizeMB MB
+                            </small>
                         </div>
 
                         <button class="btn btn-primary btn-lg w-100" 
@@ -125,15 +121,6 @@
             if (selectedFile.Size > maxSizeInBytes)
             {
                 errorMessage = $"File size exceeds the maximum allowed size of {uploadSettings.MaxFileSizeMB} MB.";
-                return;
-            }
-
-            // Validate file extension
-            var extension = Path.GetExtension(selectedFile.Name).ToLowerInvariant();
-            if (uploadSettings.AllowedExtensions.Any() && 
-                !uploadSettings.AllowedExtensions.Contains(extension))
-            {
-                errorMessage = $"File type '{extension}' is not allowed.";
                 return;
             }
 
